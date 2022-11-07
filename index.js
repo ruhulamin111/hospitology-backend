@@ -22,11 +22,21 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         await client.connect()
-        console.log('db connected');
         const doctorsCollection = client.db("hospitology").collection("doctors");
+        console.log('db connected');
 
         app.get('/doctors', async (req, res) => {
             const result = await doctorsCollection.find({}).toArray()
+            res.send(result)
+        })
+
+        app.get('/searchdoctors', async (req, res) => {
+            const branch = req.query.branch;
+            const department = req.query.department;
+            if (department === '' || branch === '') {
+                return
+            }
+            const result = await doctorsCollection.find({ branch: { $regex: branch, $options: 'i' }, department: { $regex: department, $options: 'i' } }).toArray()
             res.send(result)
         })
 
