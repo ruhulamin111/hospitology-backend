@@ -23,6 +23,7 @@ async function run() {
     try {
         await client.connect()
         const doctorsCollection = client.db("hospitology").collection("doctors");
+        const bookingsCollection = client.db("hospitology").collection("bookings");
         console.log('db connected');
 
         app.get('/doctors', async (req, res) => {
@@ -44,6 +45,11 @@ async function run() {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const result = await doctorsCollection.findOne(query)
+            res.send(result)
+        })
+
+        app.post('/bookings', async (req, res) => {
+            const result = await bookingsCollection.insertOne(req.body)
             res.send(result)
         })
 
