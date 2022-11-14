@@ -72,6 +72,7 @@ async function run() {
                 const available = doc.visithour.filter(slot => !bookslot.includes(slot))
                 doc.visithour = available
             })
+            res.send(doctors)
         })
 
 
