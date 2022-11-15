@@ -60,20 +60,27 @@ async function run() {
             }
         })
 
-        app.get('/available', async (req, res) => {
-            const date = req.query.date;
-            const doctor = req.query.doctor;
-            const query = { date: date, doctor: doctor }
-            const doctors = await doctorsCollection.find().toArray()
-            const bookings = await bookingsCollection.find(query).toArray()
-            doctors.forEach(doc => {
-                const servicebooked = bookings.filter(book => book.doctor === doc.name)
-                const bookslot = servicebooked.map(book => book.slot)
-                const available = doc.visithour.filter(slot => !bookslot.includes(slot))
-                doc.visithour = available
-            })
-            res.send(doctors)
+        app.get('/bookings', async (req, res) => {
+            const query = req.query;
+            const result = await bookingsCollection.find(query).toArray()
+            res.send(result)
         })
+
+
+        // app.get('/available', async (req, res) => {
+        //     const date = req.query.date;
+        //     const doctor = req.query.doctor;
+        //     const query = { date: date, doctor: doctor }
+        //     const doctors = await doctorsCollection.find().toArray()
+        //     const bookings = await bookingsCollection.find(query).toArray()
+        //     doctors.forEach(doc => {
+        //         const servicebooked = bookings.filter(book => book.doctor === doc.name)
+        //         const bookslot = servicebooked.map(book => book.slot)
+        //         const available = doc.visithour.filter(slot => !bookslot.includes(slot))
+        //         doc.visithour = available
+        //     })
+        //     res.send(doctors)
+        // })
 
 
 
