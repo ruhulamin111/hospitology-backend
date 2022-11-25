@@ -24,6 +24,7 @@ async function run() {
         await client.connect()
         const doctorsCollection = client.db("hospitology").collection("doctors");
         const bookingsCollection = client.db("hospitology").collection("bookings");
+        const usersCollection = client.db("hospitology").collection("users");
         console.log('db connected');
 
         app.get('/doctors', async (req, res) => {
@@ -66,6 +67,19 @@ async function run() {
             res.send(result)
         })
 
+        app.get('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email }
+            const options = { upsert: true }
+            const updatedUser = {
+                $set: user,
+            }
+            const result = await usersCollection.findOne(filter, updatedUser, options)
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
+            res.send({ result, token })
+        })
+
 
         // app.get('/available', async (req, res) => {
         //     const date = req.query.date;
@@ -82,17 +96,9 @@ async function run() {
         //     res.send(doctors)
         // })
 
-
-
-
-
-
-
-
     } finally {
 
     }
 }
 
 run().catch(console.dir)
-
