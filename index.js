@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 const app = express()
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -18,6 +19,22 @@ app.listen(port, () => {
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.6e9yqor.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+function verifyJWT(req, res, next) {
+    const authorization = req.headers.authorization;
+    if (!authorization) {
+        return res.status(404).send({ message: 'Anuthorized access' })
+    } else {
+        jwt.verify(authorization, process.env.ACCESS_TOKEN, function (err, decoded) {
+            if (err) {
+                return res.status(403).send({ message: 'Forbidden access' })
+            } else {
+                req.decoded = decoded;
+            }
+        })
+    }
+    next()
+}
 
 async function run() {
     try {
@@ -49,7 +66,7 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/bookings', async (req, res) => {
+        app.post('/bookings', verifyJWT, async (req, res) => {
             const booking = req.body;
             const query = { date: booking.date, doctor: booking.doctor, slot: booking.slot, name: booking.name }
             const exist = await bookingsCollection.findOne(query)
@@ -63,19 +80,20 @@ async function run() {
 
         app.get('/bookings', async (req, res) => {
             const query = req.query;
-            const result = await bookingsCollection.find(query).toArray()
-            res.send(result)
+            const decodedEmail = req.decoded.email;
+            if (query === decodedEmail) {
+                const result = await bookingsCollection.find(query).toArray()
+                res.send(result)
+            }
         })
 
-        app.get('/user/:email', async (req, res) => {
+        app.put('/user/:email', async (req, res) => {
             const email = req.params.email;
             const user = req.body;
             const filter = { email: email }
             const options = { upsert: true }
-            const updatedUser = {
-                $set: user,
-            }
-            const result = await usersCollection.findOne(filter, updatedUser, options)
+            const updatedUser = { $set: user }
+            const result = await usersCollection.updateOne(filter, updatedUser, options)
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
             res.send({ result, token })
         })
