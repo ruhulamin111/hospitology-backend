@@ -23,7 +23,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 function verifyJWT(req, res, next) {
     const authorization = req.headers.authorization;
     if (!authorization) {
-        return res.status(404).send({ message: 'Anuthorized access' })
+        return res.status(401).send({ message: 'Anuthorized access' })
     } else {
         jwt.verify(authorization, process.env.ACCESS_TOKEN, function (err, decoded) {
             if (err) {
@@ -66,7 +66,7 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/bookings', verifyJWT, async (req, res) => {
+        app.post('/bookings', async (req, res) => {
             const booking = req.body;
             const query = { date: booking.date, doctor: booking.doctor, slot: booking.slot, name: booking.name }
             const exist = await bookingsCollection.findOne(query)
@@ -78,12 +78,28 @@ async function run() {
             }
         })
 
-        app.get('/bookings', async (req, res) => {
+        app.get('/bookings', verifyJWT, async (req, res) => {
             const query = req.query;
-            const decodedEmail = req.decoded.email;
+            const decodedEmail = req.decoded?.email;
             if (query === decodedEmail) {
                 const result = await bookingsCollection.find(query).toArray()
                 res.send(result)
+            } else {
+                return res.status(403).send({ message: 'Forbidden access' })
+            }
+        })
+
+        app.put('/user/admin/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const adminRequest = req.decoded.email;
+            const checkAdmin = await usersCollection.findOne({ emal: adminRequest })
+            if (checkAdmin.role === 'admin') {
+                const filter = { email: email }
+                const updatedUser = { $set: { role: 'admin' } }
+                const result = await usersCollection.updateOne(filter, updatedUser)
+                res.send(result)
+            } else {
+                return res.status(403).send({ message: 'Forbidden access' })
             }
         })
 
@@ -96,6 +112,18 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updatedUser, options)
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
             res.send({ result, token })
+        })
+
+        app.get('/users', verifyJWT, async (req, res) => {
+            const users = await usersCollection.find().toArray()
+            res.send(users)
+        })
+
+        app.get('/admin/:email', async (req, res) => {
+            const query = req.params;
+            const user = await usersCollection.findOne(query)
+            const isAdmin = user.role === 'admin'
+            res.send({ admin: isAdmin })
         })
 
 
