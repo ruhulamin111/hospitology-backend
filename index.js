@@ -27,6 +27,7 @@ function verifyJWT(req, res, next) {
     } else {
         jwt.verify(authorization, process.env.ACCESS_TOKEN, function (err, decoded) {
             if (err) {
+                console.log(err)
                 return res.status(403).send({ message: 'Forbidden access' })
             } else {
                 req.decoded = decoded;
@@ -80,8 +81,8 @@ async function run() {
 
         app.get('/bookings', verifyJWT, async (req, res) => {
             const query = req.query;
-            const decodedEmail = req.decoded.email;
-            if (query === decodedEmail) {
+            const requested = req.decoded;
+            if (query.email === requested.email) {
                 const result = await bookingsCollection.find(query).toArray()
                 res.send(result)
             } else {
@@ -89,10 +90,11 @@ async function run() {
             }
         })
 
+
         app.put('/user/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
             const adminRequest = req.decoded.email;
-            const checkAdmin = await usersCollection.findOne({ emal: adminRequest })
+            const checkAdmin = await usersCollection.findOne({ email: adminRequest })
             if (checkAdmin.role === 'admin') {
                 const filter = { email: email }
                 const updatedUser = { $set: { role: 'admin' } }
@@ -122,8 +124,8 @@ async function run() {
         app.get('/admin/:email', async (req, res) => {
             const query = req.params;
             const user = await usersCollection.findOne(query)
-            const isAdmin = user.role === 'admin'
-            res.send({ admin: isAdmin })
+            const admin = user.role === 'admin';
+            res.send(admin)
         })
 
 
