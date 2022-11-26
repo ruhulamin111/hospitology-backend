@@ -53,7 +53,7 @@ async function run() {
             const branch = req.query.branch;
             const department = req.query.department;
             if (department === '' || branch === '') {
-                return
+                return;
             }
             const result = await doctorsCollection.find({ branch: { $regex: branch, $options: 'i' }, department: { $regex: department, $options: 'i' } }).toArray()
             res.send(result)
@@ -80,7 +80,7 @@ async function run() {
 
         app.get('/bookings', verifyJWT, async (req, res) => {
             const query = req.query;
-            const decodedEmail = req.decoded?.email;
+            const decodedEmail = req.decoded.email;
             if (query === decodedEmail) {
                 const result = await bookingsCollection.find(query).toArray()
                 res.send(result)
